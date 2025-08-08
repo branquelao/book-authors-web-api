@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebSQLCRUD.Data;
+using WebSQLCRUD.DTO.Author;
 using WebSQLCRUD.Models;
 
 namespace WebSQLCRUD.Services.Author
@@ -57,9 +58,120 @@ namespace WebSQLCRUD.Services.Author
             }
         }
 
-        public async Task<ResponseModel<AuthorModel>> GetAuthorBookId(int idLivro)
+        public async Task<ResponseModel<AuthorModel>> GetAuthorBookId(int idBook)
         {
-            throw new NotImplementedException("This method is not implemented yet.");
+            ResponseModel<AuthorModel> response = new ResponseModel<AuthorModel>();
+            try
+            {
+                var book = await _context.Books.Include(a => a.author).
+                    FirstOrDefaultAsync(bookBank => bookBank.id == idBook);
+
+                if (book == null)
+                {
+                    response.message = "Author not found for the given book ID.";
+                    return response;
+                }
+
+                response.data = book.author;
+                response.message = "Author retrieved successfully for the given book ID.";
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.status = false;
+                return response;
+            }
+        }
+
+        public async Task<ResponseModel<List<AuthorModel>>> CreateAuthor(CreateAuthorDTO createAuthorDTO)
+        {
+            ResponseModel<List<AuthorModel>> response = new ResponseModel<List<AuthorModel>>();
+
+            try
+            {
+                var author = new AuthorModel
+                {
+                    name = createAuthorDTO.name,
+                    surname = createAuthorDTO.surname
+                };
+
+                _context.Add(author);
+                await _context.SaveChangesAsync();
+
+                response.data = await _context.Authors.ToListAsync();
+                response.message = "Author created successfully.";
+
+                return response;
+            }
+            catch(Exception ex)
+            {
+                response.message = ex.Message;
+                response.status = false;
+                return response;
+            }
+        }
+
+        public async Task<ResponseModel<List<AuthorModel>>> UpdateAuthor(UpdateAuthorDTO updateAuthorDTO)
+        {
+            ResponseModel<List<AuthorModel>> response = new ResponseModel<List<AuthorModel>>();
+
+            try
+            {
+                var author = await _context.Authors.FirstOrDefaultAsync(authorBank => authorBank.id == updateAuthorDTO.id);
+
+                if (author == null)
+                {
+                    response.message = "Author not found.";
+                    return response;
+                }
+
+                author.name = updateAuthorDTO.name;
+                author.surname = updateAuthorDTO.surname;
+
+                _context.Update(author);
+                await _context.SaveChangesAsync();
+                
+                response.data = await _context.Authors.ToListAsync();
+                response.message = "Author updated successfully.";
+                return response;
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.status = false;
+                return response;
+            }
+        }
+
+        public async Task<ResponseModel<List<AuthorModel>>> DeleteAuthor(int idAuthor)
+        {
+            ResponseModel<List<AuthorModel>> response = new ResponseModel<List<AuthorModel>>();
+
+            try
+            {
+                var author = await _context.Authors.FirstOrDefaultAsync(authorBank => authorBank.id == idAuthor);
+
+                if (author == null)
+                {
+                    response.message = "Author not found.";
+                    return response;
+                }
+
+                _context.Remove(author);
+                await _context.SaveChangesAsync();
+
+                response.data = await _context.Authors.ToListAsync();
+                response.message = "Author deleted successfully.";
+                return response;
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.status = false;
+                return response;
+            }
         }
     }
 }

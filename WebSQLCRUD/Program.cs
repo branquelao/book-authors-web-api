@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WebSQLCRUD.Data;
 using WebSQLCRUD.Services.Author;
+using WebSQLCRUD.Services.Book;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IAuthorInterface, AuthorService>(); 
+builder.Services.AddScoped<IBookInterface, BookService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
