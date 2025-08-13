@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebSQLCRUD.Data;
 using WebSQLCRUD.DTO.Author;
+using WebSQLCRUD.Exceptions;
 using WebSQLCRUD.Models;
 
 namespace WebSQLCRUD.Services.Author
@@ -28,7 +29,7 @@ namespace WebSQLCRUD.Services.Author
 
                 return response;
             }
-            catch (Exception ex)
+            catch (DatabaseException ex)
             {
                 response.message = ex.Message;
                 response.status = false;
@@ -54,7 +55,7 @@ namespace WebSQLCRUD.Services.Author
 
                 return response;
             }
-            catch (Exception ex)
+            catch (ResourceNotFoundException ex)
             {
                 response.message = ex.Message;
                 response.status = false;
@@ -81,7 +82,7 @@ namespace WebSQLCRUD.Services.Author
                 return response;
 
             }
-            catch (Exception ex)
+            catch (ResourceNotFoundException ex)
             {
                 response.message = ex.Message;
                 response.status = false;
@@ -109,7 +110,7 @@ namespace WebSQLCRUD.Services.Author
 
                 return response;
             }
-            catch(Exception ex)
+            catch(DatabaseException ex)
             {
                 response.message = ex.Message;
                 response.status = false;
@@ -141,7 +142,7 @@ namespace WebSQLCRUD.Services.Author
                 response.message = "Author updated successfully.";
                 return response;
             }
-            catch (Exception ex)
+            catch (DatabaseException ex)
             {
                 response.message = ex.Message;
                 response.status = false;
@@ -170,7 +171,7 @@ namespace WebSQLCRUD.Services.Author
                 response.message = "Author deleted successfully.";
                 return response;
             }
-            catch (Exception ex)
+            catch (DatabaseException ex)
             {
                 response.message = ex.Message;
                 response.status = false;

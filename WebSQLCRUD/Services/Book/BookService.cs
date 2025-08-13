@@ -2,6 +2,7 @@
 using WebSQLCRUD.Data;
 using WebSQLCRUD.DTO.Author;
 using WebSQLCRUD.DTO.Book;
+using WebSQLCRUD.Exceptions;
 using WebSQLCRUD.Models;
 
 namespace WebSQLCRUD.Services.Book
@@ -31,7 +32,7 @@ namespace WebSQLCRUD.Services.Book
 
                 return response;
             }
-            catch (Exception ex)
+            catch (DatabaseException ex)
             {
                 response.message = ex.Message;
                 response.status = false;
@@ -57,7 +58,7 @@ namespace WebSQLCRUD.Services.Book
 
                 return response;
             }
-            catch (Exception ex)
+            catch (ResourceNotFoundException ex)
             {
                 response.message = ex.Message;
                 response.status = false;
@@ -84,7 +85,7 @@ namespace WebSQLCRUD.Services.Book
                 return response;
 
             }
-            catch (Exception ex)
+            catch (ResourceNotFoundException ex)
             {
                 response.message = ex.Message;
                 response.status = false;
@@ -121,7 +122,7 @@ namespace WebSQLCRUD.Services.Book
                 return response;
 
             }
-            catch (Exception ex)
+            catch (DatabaseException ex)
             {
                 response.message = ex.Message;
                 response.status = false;
@@ -161,7 +162,7 @@ namespace WebSQLCRUD.Services.Book
                 response.data = await _context.Books.ToListAsync();
                 return response;
             }
-            catch (Exception ex)
+            catch (DatabaseException ex)
             {
                 response.message = ex.Message;
                 response.status = false;
@@ -191,7 +192,7 @@ namespace WebSQLCRUD.Services.Book
                 response.message = "Book deleted successfully.";
                 return response;
             }
-            catch (Exception ex)
+            catch (DatabaseException ex)
             {
                 response.message = ex.Message;
                 response.status = false;
