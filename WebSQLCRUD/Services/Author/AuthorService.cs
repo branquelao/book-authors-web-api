@@ -12,12 +12,16 @@ namespace WebSQLCRUD.Services.Author
         {
             _context = context;
         }
-        public async Task<ResponseModel<List<AuthorModel>>> ListAuthors()
+        public async Task<ResponseModel<List<AuthorModel>>> ListAuthors(int page=1, int pageSize=10)
         {
             ResponseModel<List<AuthorModel>> response = new ResponseModel<List<AuthorModel>>();
             try
             {
-                var authors = await _context.Authors.ToListAsync();
+                var skipCount = (page - 1) * pageSize;
+                var authors = await _context.Authors.OrderBy(e => e.id)
+                    .Skip(skipCount)
+                    .Take(pageSize)
+                    .ToListAsync();
 
                 response.data = authors;
                 response.message = "Authors retrieved successfully.";

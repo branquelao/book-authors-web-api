@@ -14,12 +14,17 @@ namespace WebSQLCRUD.Services.Book
             _context = context;
         }
 
-        public async Task<ResponseModel<List<BookModel>>> ListBooks()
+        public async Task<ResponseModel<List<BookModel>>> ListBooks(int page = 1, int pageSize = 10)
         {
             ResponseModel<List<BookModel>> response = new ResponseModel<List<BookModel>>();
             try
             {
-                var books = await _context.Books.Include(a => a.author).ToListAsync();
+                var skipCount = (page - 1) * pageSize;
+                var books = await _context.Books.OrderBy(e => e.id)
+                    .Skip(skipCount)
+                    .Take(pageSize)
+                    .Include(a => a.author)
+                    .ToListAsync();
 
                 response.data = books;
                 response.message = "Books retrieved successfully.";

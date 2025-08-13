@@ -18,9 +18,9 @@ namespace WebSQLCRUD.Controllers
         }
 
         [HttpGet("ListBooks")]
-        public async Task<ActionResult<ResponseModel<List<BookModel>>>> ListBooks()
+        public async Task<ActionResult<ResponseModel<List<BookModel>>>> ListBooks(int page=1, int pageSize=10)
         {
-            var books = await _bookInterface.ListBooks();
+            var books = await _bookInterface.ListBooks(page, pageSize);
             return Ok(books);
         }
 

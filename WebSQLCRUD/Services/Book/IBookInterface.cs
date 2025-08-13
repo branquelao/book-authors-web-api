@@ -6,7 +6,7 @@ namespace WebSQLCRUD.Services.Book
 {
     public interface IBookInterface
     {
-        Task<ResponseModel<List<BookModel>>> ListBooks();
+        Task<ResponseModel<List<BookModel>>> ListBooks(int page = 1, int pageSize = 10);
         Task<ResponseModel<BookModel>> GetBookId(int idBook);
         Task<ResponseModel<List<BookModel>>> GetBookAuthorId(int idLivro);
         Task<ResponseModel<List<BookModel>>> CreateBook(CreateBookDTO createBookDTO);

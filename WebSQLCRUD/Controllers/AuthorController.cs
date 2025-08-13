@@ -11,15 +11,15 @@ namespace WebSQLCRUD.Controllers
     public class AuthorController : ControllerBase
     {
         private readonly IAuthorInterface _authorInterface;
-        public AuthorController(IAuthorInterface autorInterface)
+        public AuthorController(IAuthorInterface authorInterface)
         {
-            _authorInterface = autorInterface;
+            _authorInterface = authorInterface;
         }
 
         [HttpGet("ListAuthors")]
-        public async Task<ActionResult<ResponseModel<List<AuthorModel>>>> ListAuthors()
+        public async Task<ActionResult<ResponseModel<List<AuthorModel>>>> ListAuthors(int page = 1, int pageSize = 10)
         {
-            var authors = await _authorInterface.ListAuthors();
+            var authors = await _authorInterface.ListAuthors(page, pageSize);
             return Ok(authors);
         }
 
