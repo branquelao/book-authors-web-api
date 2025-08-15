@@ -30,7 +30,7 @@ public class ImportController : ControllerBase
         var authors = new Dictionary<int, AuthorModel>();
         var lines = System.IO.File.ReadAllLines(path);
 
-        for (int i = 1; i < lines.Length; i++) // skip header
+        for (int i = 1; i < lines.Length; i++) // Skip header
         {
             var values = lines[i].Split(',');
             authors.Add(int.Parse(values[0]), new AuthorModel
