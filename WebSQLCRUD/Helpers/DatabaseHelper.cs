@@ -5,9 +5,14 @@ using WebSQLCRUD.Models;
 
 namespace WebSQLCRUD.Helpers
 {
-    public class DatabaseHelper
+    public class DatabaseHelper : BackgroundService
     {
         static void Main()
+        {
+            CreateToDatabase();
+        }
+
+        static void CreateToDatabase()
         {
             string cs = "server= DESKTOP-F9KSMDH\\SQLEXPRESS; database= WebSQLCRUD; trusted_connection= true; trustservercertificate= true";
             // Paths to your CSV files
@@ -47,9 +52,8 @@ namespace WebSQLCRUD.Helpers
                 authors[authorId].books.Add(book);
             }
 
-            // Convert to JSON (optional, for debugging or API)
+            // Convert to JSON 
             string json = JsonSerializer.Serialize(authors.Values, new JsonSerializerOptions { WriteIndented = true });
-            Console.WriteLine(json);
 
             // Send data to SQL Server
             SaveToDatabase(authors.Values, cs);
@@ -122,6 +126,22 @@ namespace WebSQLCRUD.Helpers
             }
 
             sqlTransaction.Commit();
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            Console.WriteLine("Started Async Background.");
+            await Task.Delay(TimeSpan.FromSeconds(10));
+            int times = 1;
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                CreateToDatabase();
+                Console.WriteLine("Background Authors and Books updated! " + times);
+                times++;
+
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            }
         }
     }
 }

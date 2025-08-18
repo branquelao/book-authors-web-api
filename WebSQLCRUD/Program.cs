@@ -3,14 +3,17 @@ using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Text.Json;
 using WebSQLCRUD.Data;
+using WebSQLCRUD.Helpers;
 using WebSQLCRUD.Models;
+using WebSQLCRUD.Services;
 using WebSQLCRUD.Services.Author;
 using WebSQLCRUD.Services.Book;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
+builder.Services.AddHostedService<DatabaseHelper>();
+// builder.Services.AddHostedService<BackgroundHelper>();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
