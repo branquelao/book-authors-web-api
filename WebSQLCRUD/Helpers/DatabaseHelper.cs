@@ -5,14 +5,14 @@ using WebSQLCRUD.Models;
 
 namespace WebSQLCRUD.Helpers
 {
-    public class DatabaseHelper : BackgroundService
+    public class DatabaseHelper
     {
         static void Main()
         {
             CreateToDatabase();
         }
 
-        static void CreateToDatabase()
+        public static void CreateToDatabase()
         {
             string cs = "server= DESKTOP-F9KSMDH\\SQLEXPRESS; database= WebSQLCRUD; trusted_connection= true; trustservercertificate= true";
             // Paths to your CSV files
@@ -59,89 +59,143 @@ namespace WebSQLCRUD.Helpers
             SaveToDatabase(authors.Values, cs);
         }
 
-        internal static void SaveToDatabase(IEnumerable<AuthorModel> authors, string cs)
+        public static void SaveToDatabase(IEnumerable<AuthorModel> authors, string cs)
         {
             using var sqlConnection = new SqlConnection(cs);
             sqlConnection.Open();
             using var sqlTransaction = sqlConnection.BeginTransaction();
 
+            // 1. Load current database state
+            var dbAuthors = new Dictionary<int, AuthorModel>();
+            using (var cmd = new SqlCommand("SELECT Id, Name, Surname FROM Authors", sqlConnection, sqlTransaction))
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    dbAuthors.Add(reader.GetInt32(0), new AuthorModel
+                    {
+                        id = reader.GetInt32(0),
+                        name = reader.GetString(1),
+                        surname = reader.GetString(2),
+                        books = new List<BookModel>()
+                    });
+                }
+            }
+
+            // Load books
+            var dbBooks = new Dictionary<int, BookModel>();
+            using (var cmd = new SqlCommand("SELECT Id, Title, AuthorId FROM Books", sqlConnection, sqlTransaction))
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var book = new BookModel
+                    {
+                        id = reader.GetInt32(0),
+                        title = reader.GetString(1),
+                    };
+                    int authorId = reader.GetInt32(2);
+
+                    dbBooks.Add(book.id, book);
+                    if (dbAuthors.ContainsKey(authorId))
+                        dbAuthors[authorId].books.Add(book);
+                }
+            }
+
+            // 2. Sync Authors
             foreach (var author in authors)
             {
-                // Insert author, get generated Id
-                using (var checkCmd = new SqlCommand(@"
-                        SELECT Id FROM [dbo].[Authors] 
-                        WHERE [Name] = @Name AND [Surname] = @Surname;", sqlConnection, sqlTransaction))
-                {
-                    checkCmd.Parameters.Add("@Name", SqlDbType.NVarChar, 100).Value = author.name;
-                    checkCmd.Parameters.Add("@Surname", SqlDbType.NVarChar, 100).Value = author.surname;
+                // Check if author already exists (by name+surname or by ID)
+                var existingAuthor = dbAuthors.Values.FirstOrDefault(a => a.name == author.name && a.surname == author.surname);
 
-                    var existingId = checkCmd.ExecuteScalar();
-                    if (existingId != null)
+                if (existingAuthor == null)
+                {
+                    // INSERT
+                    using var insertCmd = new SqlCommand(@"
+                INSERT INTO Authors (Name, Surname) 
+                OUTPUT INSERTED.Id 
+                VALUES (@Name, @Surname)", sqlConnection, sqlTransaction);
+
+                    insertCmd.Parameters.AddWithValue("@Name", author.name);
+                    insertCmd.Parameters.AddWithValue("@Surname", author.surname);
+                    author.id = (int)insertCmd.ExecuteScalar();
+                }
+                else
+                {
+                    author.id = existingAuthor.id;
+                    if (author.name != existingAuthor.name || author.surname != existingAuthor.surname)
                     {
-                        author.id = (int)existingId; // Use existing ID
+                        // UPDATE
+                        using var updateCmd = new SqlCommand(@"
+                    UPDATE Authors SET Name=@Name, Surname=@Surname 
+                    WHERE Id=@Id", sqlConnection, sqlTransaction);
+
+                        updateCmd.Parameters.AddWithValue("@Id", existingAuthor.id);
+                        updateCmd.Parameters.AddWithValue("@Name", author.name);
+                        updateCmd.Parameters.AddWithValue("@Surname", author.surname);
+                        updateCmd.ExecuteNonQuery();
+                    }
+
+                    // Mark this author as processed
+                    dbAuthors.Remove(existingAuthor.id);
+                }
+
+                // 3. Sync Books for this author
+                foreach (var book in author.books)
+                {
+                    var existingBook = dbBooks.Values.FirstOrDefault(b => b.title == book.title && author.id == dbAuthors.Values.FirstOrDefault()?.id);
+
+                    if (existingBook == null)
+                    {
+                        // INSERT
+                        using var insertCmd = new SqlCommand(@"
+                    INSERT INTO Books (Title, AuthorId) 
+                    OUTPUT INSERTED.Id 
+                    VALUES (@Title, @AuthorId)", sqlConnection, sqlTransaction);
+
+                        insertCmd.Parameters.AddWithValue("@Title", book.title);
+                        insertCmd.Parameters.AddWithValue("@AuthorId", author.id);
+                        book.id = (int)insertCmd.ExecuteScalar();
                     }
                     else
                     {
-                        using (var insertCmd = new SqlCommand(@"
-                             INSERT INTO [dbo].[Authors] ([Name],[Surname])
-                             OUTPUT INSERTED.[Id]
-                             VALUES (@Name,@Surname);", sqlConnection, sqlTransaction))
+                        book.id = existingBook.id;
+
+                        if (book.title != existingBook.title)
                         {
-                            insertCmd.Parameters.Add("@Name", SqlDbType.NVarChar, 100).Value = author.name;
-                            insertCmd.Parameters.Add("@Surname", SqlDbType.NVarChar, 100).Value = author.surname;
-                            author.id = (int)insertCmd.ExecuteScalar();
+                            // UPDATE
+                            using var updateCmd = new SqlCommand(@"
+                        UPDATE Books SET Title=@Title 
+                        WHERE Id=@Id", sqlConnection, sqlTransaction);
+
+                            updateCmd.Parameters.AddWithValue("@Id", existingBook.id);
+                            updateCmd.Parameters.AddWithValue("@Title", book.title);
+                            updateCmd.ExecuteNonQuery();
                         }
+
+                        // Mark this book as processed
+                        dbBooks.Remove(existingBook.id);
                     }
                 }
+            }
 
-                // Insert books, get generated Ids (optional to read back)
-                foreach (var book in author.books)
-                {
-                    using (var checkCmd = new SqlCommand(@"
-                        SELECT Id FROM [dbo].[Books]
-                        WHERE [Title] = @Title AND [AuthorId] = @AuthorId;", sqlConnection, sqlTransaction))
-                    {
-                        checkCmd.Parameters.Add("@Title", SqlDbType.NVarChar, 200).Value = book.title;
-                        checkCmd.Parameters.Add("@AuthorId", SqlDbType.Int).Value = author.id;
+            // 4. Delete remaining unprocessed authors (and cascade books)
+            foreach (var remainingAuthor in dbAuthors.Values)
+            {
+                using var deleteCmd = new SqlCommand("DELETE FROM Authors WHERE Id=@Id", sqlConnection, sqlTransaction);
+                deleteCmd.Parameters.AddWithValue("@Id", remainingAuthor.id);
+                deleteCmd.ExecuteNonQuery();
+            }
 
-                        var existingId = checkCmd.ExecuteScalar();
-                        if (existingId != null)
-                        {
-                            book.id = (int)existingId;
-                        }
-                        else
-                        {
-                            using (var insertCmd = new SqlCommand(@"
-                                INSERT INTO [dbo].[Books] ([Title],[AuthorId])
-                                OUTPUT INSERTED.[Id]
-                                VALUES (@Title,@AuthorId);", sqlConnection, sqlTransaction))
-                            {
-                                insertCmd.Parameters.Add("@Title", SqlDbType.NVarChar, 200).Value = book.title;
-                                insertCmd.Parameters.Add("@AuthorId", SqlDbType.Int).Value = author.id;
-                                book.id = (int)insertCmd.ExecuteScalar();
-                            }
-                        }
-                    }
-                }
+            // 5. Delete remaining unprocessed books
+            foreach (var remainingBook in dbBooks.Values)
+            {
+                using var deleteCmd = new SqlCommand("DELETE FROM Books WHERE Id=@Id", sqlConnection, sqlTransaction);
+                deleteCmd.Parameters.AddWithValue("@Id", remainingBook.id);
+                deleteCmd.ExecuteNonQuery();
             }
 
             sqlTransaction.Commit();
-        }
-
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            Console.WriteLine("Started Async Background.");
-            await Task.Delay(TimeSpan.FromSeconds(10));
-            int times = 1;
-
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                CreateToDatabase();
-                Console.WriteLine("Background Authors and Books updated! " + times);
-                times++;
-
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-            }
         }
     }
 }

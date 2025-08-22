@@ -12,8 +12,8 @@ using WebSQLCRUD.Services.Book;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddHostedService<DatabaseHelper>();
-// builder.Services.AddHostedService<BackgroundHelper>();
+// builder.Services.AddHostedService<DatabaseHelper>();
+builder.Services.AddHostedService<BackgroundHelper>();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

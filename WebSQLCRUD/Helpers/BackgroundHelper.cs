@@ -1,22 +1,25 @@
 ﻿
 namespace WebSQLCRUD.Helpers
 {
-    public class BackgroundHelper : IHostedService
+    public class BackgroundHelper : BackgroundService
     {
-        private readonly ILogger<BackgroundHelper> _logger;
-        public BackgroundHelper(ILogger<BackgroundHelper> logger)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger = logger;
-        }
+            Console.WriteLine("Started Async Background.");
+            await Task.Delay(TimeSpan.FromSeconds(10));
+            int times = 1;
 
-        public async Task StartAsync(CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("Background service is starting.");
-        }
+            DatabaseHelper dbHelper = new DatabaseHelper(); 
 
-        public async Task StopAsync(CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("Background service is stopping.");
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                DatabaseHelper.CreateToDatabase();
+
+                Console.WriteLine("Background Authors and Books updated! " + times);
+                times++;
+
+                await Task.Delay(TimeSpan.FromSeconds(6), stoppingToken);
+            }
         }
     }
 }
