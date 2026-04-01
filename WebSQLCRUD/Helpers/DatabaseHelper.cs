@@ -14,7 +14,7 @@ namespace WebSQLCRUD.Helpers
 
         public static void CreateToDatabase()
         {
-            string cs = "server= DESKTOP-F9KSMDH\\SQLEXPRESS; database= WebSQLCRUD; trusted_connection= true; trustservercertificate= true";
+            string cs = "server=.\\SQLEXPRESS; database= WebSQLCRUD; trusted_connection= true; trustservercertificate= true";
             // Paths to your CSV files
             string authorsPath = "authors.csv";
             string booksPath = "books.csv";
